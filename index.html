@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0a12">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="VB Captura">
+  <title>VB Captura</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --bg:        #0a0a12;
+      --bg-card:   #12121e;
+      --bg-input:  #1a1a2e;
+      --cyan:      #00e5ff;
+      --green:     #00ff88;
+      --red:       #ff3b5c;
+      --orange:    #ffaa00;
+      --text:      #e0e0f0;
+      --muted:     #5a5a7a;
+      --border:    #2a2a3e;
+      --font:      'Courier New', monospace;
+    }
+
+    html, body {
+      height: 100%; background: var(--bg);
+      color: var(--text); font-family: var(--font);
+      overflow: hidden;
+    }
+
+    /* ── PANTALLAS ── */
+    .screen { display: none; flex-direction: column; height: 100vh; padding: 0; }
+    .screen.active { display: flex; }
+
+    /* ── LOGIN ── */
+    #screen-login {
+      align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at 50% 0%, #1a1a3e 0%, #0a0a12 70%);
+      gap: 24px; padding: 32px 24px;
+    }
+    .logo { text-align: center; }
+    .logo-title {
+      font-size: 28px; font-weight: 700; letter-spacing: 6px;
+      color: var(--cyan); text-shadow: 0 0 20px rgba(0,229,255,0.5);
+    }
+    .logo-sub { font-size: 10px; color: var(--muted); letter-spacing: 3px; margin-top: 4px; }
+
+    .login-box {
+      width: 100%; max-width: 340px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 28px 24px; display: flex; flex-direction: column; gap: 16px;
+    }
+    .field-label { font-size: 10px; color: var(--muted); letter-spacing: 2px; margin-bottom: 4px; }
+    .field-input {
+      width: 100%; background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px 14px; color: var(--text);
+      font-family: var(--font); font-size: 15px; outline: none;
+    }
+    .field-input:focus { border-color: var(--cyan); }
+    .field-input::placeholder { color: var(--muted); }
+
+    .btn-primary {
+      width: 100%; padding: 14px; border: none; border-radius: 8px;
+      background: var(--cyan); color: #000; font-family: var(--font);
+      font-size: 13px; font-weight: 700; letter-spacing: 2px;
+      cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn-primary:active { opacity: 0.8; }
+    .btn-primary:disabled { background: var(--border); color: var(--muted); cursor: default; }
+
+    .msg { font-size: 11px; text-align: center; min-height: 16px; }
+    .msg.ok  { color: var(--green); }
+    .msg.err { color: var(--red); }
+
+    /* ── VISOR ── */
+    #screen-visor { background: var(--bg); }
+
+    .visor-header {
+      background: var(--bg-card); border-bottom: 1px solid var(--border);
+      padding: 10px 16px; display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .visor-title { font-size: 11px; color: var(--cyan); letter-spacing: 2px; font-weight: 700; }
+    .visor-user  { font-size: 10px; color: var(--muted); }
+    .btn-logout  {
+      background: none; border: 1px solid var(--border); border-radius: 6px;
+      color: var(--muted); font-family: var(--font); font-size: 10px;
+      padding: 4px 10px; cursor: pointer;
+    }
+
+    /* ── CÁMARA ── */
+    .cam-wrap {
+      flex: 1; position: relative; background: #000;
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    #video {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+    .cam-overlay {
+      position: absolute; inset: 0; pointer-events: none;
+      border: 2px solid rgba(0,229,255,0.15);
+    }
+    .cam-corner {
+      position: absolute; width: 20px; height: 20px;
+      border-color: var(--cyan); border-style: solid; opacity: 0.7;
+    }
+    .cam-corner.tl { top: 12px; left: 12px; border-width: 2px 0 0 2px; }
+    .cam-corner.tr { top: 12px; right: 12px; border-width: 2px 2px 0 0; }
+    .cam-corner.bl { bottom: 12px; left: 12px; border-width: 0 0 2px 2px; }
+    .cam-corner.br { bottom: 12px; right: 12px; border-width: 0 2px 2px 0; }
+
+    .badge-live {
+      position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      background: rgba(10,10,18,0.85); border: 1px solid var(--border);
+      border-radius: 20px; padding: 4px 14px; font-size: 10px; letter-spacing: 2px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+    .badge-dot.live { background: var(--green); animation: blink 1s infinite; }
+    .badge-dot.err  { background: var(--red); }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ── CONTROLS ── */
+    .controls {
+      background: var(--bg-card); border-top: 1px solid var(--border);
+      padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0;
+    }
+    .stats-row {
+      display: flex; justify-content: space-between; font-size: 10px; color: var(--muted);
+    }
+    .stat-val { color: var(--text); }
+
+    .btn-row { display: flex; gap: 10px; }
+    .btn-cam {
+      flex: 1; padding: 13px; border: none; border-radius: 8px;
+      font-family: var(--font); font-size: 11px; font-weight: 700;
+      letter-spacing: 1px; cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn-cam:active { opacity: 0.8; }
+    .btn-start { background: var(--green); color: #000; }
+    .btn-stop  { background: var(--red);   color: #fff; }
+    .btn-flip  {
+      background: var(--bg-input); border: 1px solid var(--border);
+      color: var(--text); padding: 13px 16px; border-radius: 8px;
+      font-family: var(--font); font-size: 18px; cursor: pointer;
+    }
+
+    .fps-row { display: flex; align-items: center; gap: 10px; font-size: 10px; color: var(--muted); }
+    .fps-row input[type=range] { flex: 1; accent-color: var(--cyan); }
+    .fps-val { color: var(--cyan); min-width: 30px; text-align: right; }
+
+    .log-box {
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: 6px; padding: 6px 10px; font-size: 9px; color: var(--muted);
+      height: 36px; overflow: hidden; display: flex; align-items: flex-end;
+    }
+    #log-text { color: var(--green); word-break: break-all; }
+  </style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="screen-login" class="screen active">
+  <div class="logo">
+    <div class="logo-title">VB CAPTURA</div>
+    <div class="logo-sub">MOBILE · PWA</div>
+  </div>
+  <div class="login-box">
+    <div>
+      <div class="field-label">DNI / RUT</div>
+      <input id="inp-dni" class="field-input" type="text" placeholder="9734238-5" autocomplete="off">
+    </div>
+    <button id="btn-login" class="btn-primary">INGRESAR</button>
+    <div id="login-msg" class="msg"></div>
+  </div>
+</div>
+
+<!-- ── VISOR ── -->
+<div id="screen-visor" class="screen">
+  <div class="visor-header">
+    <div>
+      <div class="visor-title">VB CAPTURA</div>
+      <div class="visor-user" id="lbl-user">—</div>
+    </div>
+    <button class="btn-logout" id="btn-logout">SALIR</button>
+  </div>
+
+  <div class="cam-wrap">
+    <video id="video" autoplay playsinline muted></video>
+    <div class="cam-overlay">
+      <div class="cam-corner tl"></div>
+      <div class="cam-corner tr"></div>
+      <div class="cam-corner bl"></div>
+      <div class="cam-corner br"></div>
+    </div>
+    <div class="badge-live">
+      <div class="badge-dot" id="badge-dot"></div>
+      <span id="badge-txt">ESPERANDO</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="stats-row">
+      <span>ENVIADOS <span class="stat-val" id="cnt-sent">0</span></span>
+      <span>ERRORES <span class="stat-val" id="cnt-err">0</span></span>
+      <span>FPS <span class="stat-val" id="cnt-fps">—</span></span>
+    </div>
+
+    <div class="fps-row">
+      <span>INTERVALO</span>
+      <input type="range" id="fps-slider" min="1" max="8" value="4" step="1">
+      <span class="fps-val"><span id="fps-lbl">4</span> fps</span>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-cam btn-start" id="btn-start">▶ INICIAR</button>
+      <button class="btn-cam btn-stop"  id="btn-stop" style="display:none">■ DETENER</button>
+      <button class="btn-flip" id="btn-flip" title="Cambiar cámara">⟳</button>
+    </div>
+
+    <div class="log-box"><span id="log-text">Listo.</span></div>
+  </div>
+</div>
+
+<script>
+// ── Config ──────────────────────────────────────────────────────────────────
+const API_BASE = "https://vb-backend-cc0n.onrender.com";
+
+// ── Estado ───────────────────────────────────────────────────────────────────
+let session    = null;
+let stream     = null;
+let sendTimer  = null;
+let facingMode = "environment";   // trasera por defecto
+let sent = 0, errs = 0;
+let lastSentTime = 0;
+let fpsCount = 0, fpsLast = Date.now();
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const $  = id => document.getElementById(id);
+const log = msg => { $('log-text').textContent = msg; };
+const setScreen = id => {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+};
+const setBadge = (txt, state) => {
+  $('badge-txt').textContent = txt;
+  const dot = $('badge-dot');
+  dot.className = 'badge-dot' + (state === 'live' ? ' live' : state === 'err' ? ' err' : '');
+};
+
+// ── FPS slider ───────────────────────────────────────────────────────────────
+$('fps-slider').addEventListener('input', e => {
+  $('fps-lbl').textContent = e.target.value;
+  if (sendTimer) { clearInterval(sendTimer); startSending(); }
+});
+
+// ── LOGIN ────────────────────────────────────────────────────────────────────
+$('btn-login').addEventListener('click', async () => {
+  const dni = $('inp-dni').value.trim();
+  if (!dni) { showMsg('Ingresa tu DNI', 'err'); return; }
+  $('btn-login').disabled = true;
+  $('btn-login').textContent = 'VERIFICANDO...';
+  showMsg('', '');
+  try {
+    const r = await fetch(`${API_BASE}/usuarios/validar?dni=${encodeURIComponent(dni)}`);
+    const d = await r.json();
+    if (d.existe && d.activo) {
+      session = { dni: d.dni, entity: d.usr_entity, name: d.usr_name, subsyst: d.ent_subsyst || 'fxp' };
+      $('lbl-user').textContent = `${d.usr_name} · ${d.usr_entity}`;
+      setScreen('screen-visor');
+      await startCamera();
+    } else {
+      showMsg(d.mensaje || 'Usuario no encontrado', 'err');
+    }
+  } catch (e) { showMsg('Error de conexión', 'err'); }
+  $('btn-login').disabled = false;
+  $('btn-login').textContent = 'INGRESAR';
+});
+
+$('inp-dni').addEventListener('keydown', e => { if (e.key === 'Enter') $('btn-login').click(); });
+
+function showMsg(txt, type) {
+  const el = $('login-msg');
+  el.textContent = txt;
+  el.className = 'msg ' + type;
+}
+
+// ── CÁMARA ───────────────────────────────────────────────────────────────────
+async function startCamera() {
+  try {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode, width: { ideal: 640 }, height: { ideal: 480 } },
+      audio: false
+    });
+    $('video').srcObject = stream;
+    setBadge('CÁMARA LISTA', '');
+    log('Cámara iniciada.');
+  } catch (e) {
+    setBadge('SIN CÁMARA', 'err');
+    log('Error cámara: ' + e.message);
+  }
+}
+
+$('btn-flip').addEventListener('click', async () => {
+  facingMode = facingMode === 'environment' ? 'user' : 'environment';
+  await startCamera();
+});
+
+// ── CAPTURA Y ENVÍO ──────────────────────────────────────────────────────────
+$('btn-start').addEventListener('click', () => {
+  if (!stream) { log('Sin cámara.'); return; }
+  $('btn-start').style.display = 'none';
+  $('btn-stop').style.display  = 'flex';
+  setBadge('LIVE', 'live');
+  sent = 0; errs = 0; updateStats();
+  startSending();
+  log('Enviando fotogramas...');
+});
+
+$('btn-stop').addEventListener('click', () => {
+  stopSending();
+  $('btn-stop').style.display  = 'none';
+  $('btn-start').style.display = 'flex';
+  setBadge('DETENIDO', '');
+  log('Captura detenida.');
+});
+
+function startSending() {
+  const fps = parseInt($('fps-slider').value);
+  const interval = Math.round(1000 / fps);
+  sendTimer = setInterval(capturarYEnviar, interval);
+}
+
+function stopSending() {
+  if (sendTimer) { clearInterval(sendTimer); sendTimer = null; }
+}
+
+async function capturarYEnviar() {
+  const video = $('video');
+  if (!video.videoWidth) return;
+
+  // Capturar frame
+  const canvas = document.createElement('canvas');
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const b64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+
+  // Generar nombre fotograma
+  const now    = new Date();
+  const fecha  = now.toISOString().slice(0,10);
+  const hora   = now.toTimeString().slice(0,8).replace(/:/g,'-') + '-' + String(now.getMilliseconds()).padStart(4,'0');
+  const nombre = `${session.subsyst}_mobile_cam1_${fecha}_${hora}`;
+
+  try {
+    const r = await fetch(`${API_BASE}/imagenes/fotograma`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        img_name:   nombre,
+        img_entity: session.entity,
+        img_dni:    session.dni,
+        img_code:   'cam1',
+        img_bs64:   b64
+      })
+    });
+    if (r.ok) { sent++; } else { errs++; }
+  } catch { errs++; }
+
+  // FPS real
+  fpsCount++;
+  const now2 = Date.now();
+  if (now2 - fpsLast >= 1000) {
+    $('cnt-fps').textContent = fpsCount;
+    fpsCount = 0; fpsLast = now2;
+  }
+  updateStats();
+}
+
+function updateStats() {
+  $('cnt-sent').textContent = sent;
+  $('cnt-err').textContent  = errs;
+}
+
+// ── LOGOUT ───────────────────────────────────────────────────────────────────
+$('btn-logout').addEventListener('click', () => {
+  stopSending();
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  session = null; stream = null;
+  sent = 0; errs = 0;
+  $('inp-dni').value = '';
+  setScreen('screen-login');
+});
+
+// ── SERVICE WORKER ────────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>

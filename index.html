@@ -358,7 +358,7 @@ async function capturarYEnviar() {
   const now    = new Date();
   const fecha  = now.toISOString().slice(0,10);
   const hora   = now.toTimeString().slice(0,8).replace(/:/g,'-') + '-' + String(now.getMilliseconds()).padStart(4,'0');
-  const nombre = `${session.subsyst}_mobile_cam1_${fecha}_${hora}`;
+  const nombre = `${session.subsyst}_mobile_cam1_${fecha}_${hora}_m`;
 
   try {
     const r = await fetch(`${API_BASE}/imagenes/fotograma`, {
